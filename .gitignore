@@ -1,0 +1,38 @@
+# Configuração privada
+.env
+.env.*
+.envrc
+*.env
+!.env.example
+appsettings*.json
+app.json
+*.pfx
+*.p12
+*.pem
+*.key
+secrets.json
+.npmrc
+.neon
+
+# Dependências e artefatos
+node_modules/
+dist/
+bin/
+obj/
+artifacts/
+TestResults/
+coverage/
+.taskdev-tools/
+*.log
+*.tsbuildinfo
+*.db
+*.db-shm
+*.db-wal
+
+# IDE e sistema operacional
+.vs/
+.idea/
+*.user
+*.suo
+.DS_Store
+Thumbs.db

@@ -1,0 +1,26 @@
+services:
+  api:
+    environment:
+      DATABASE_URL: ""
+      DATABASE_URL_UNPOOLED: ""
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=taskdev;Username=taskdev;Password=${POSTGRES_PASSWORD:?gere uma senha em .env};SSL Mode=Disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: taskdev
+      POSTGRES_USER: taskdev
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?gere uma senha em .env}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskdev -d taskdev"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

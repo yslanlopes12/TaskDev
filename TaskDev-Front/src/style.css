@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+
+:root {
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection { background: #4b416d; }
+
+/* Scrollbar customização */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2b2c33 transparent;
+}
+
+/* Classes de Drag & Drop para Sortable / vue-draggable-plus (sem espaços múltiplos) */
+.kanban-ghost {
+  opacity: 0.3 !important;
+}
+
+.kanban-drag {
+  transform: rotate(1deg) scale(1.02) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  cursor: grabbing !important;
+  opacity: 1 !important;
+}

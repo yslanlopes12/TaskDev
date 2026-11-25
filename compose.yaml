@@ -1,0 +1,23 @@
+services:
+  api:
+    build: ./TaskDev-Back/TaskDev-Back
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Swagger__Enabled: "false"
+      DATABASE_URL: ${DATABASE_URL:-}
+      DATABASE_URL_UNPOOLED: ${DATABASE_URL_UNPOOLED:-}
+      AGENT_ENCRYPTION_KEY: ${AGENT_ENCRYPTION_KEY:?gere uma chave em .env}
+      Security__SecureCookies: ${Security__SecureCookies:-false}
+      Admin__BootstrapEnabled: ${Admin__BootstrapEnabled:-false}
+    volumes:
+      - session-keys:/home/app/.aspnet/DataProtection-Keys
+
+  web:
+    build: ./TaskDev-Front
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:${TASKDEV_PORT:-8080}:80"
+
+volumes:
+  session-keys:

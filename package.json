@@ -1,0 +1,19 @@
+{
+  "name": "taskdev",
+  "version": "1.0.0",
+  "description": "Task.dev - Ferramenta de gerenciamento de tarefas minimalista e gamificada",
+  "scripts": {
+    "dev:front": "npm --prefix TaskDev-Front run dev",
+    "dev:back": "dotnet run --project TaskDev-Back/TaskDev-Back/TaskDev-Back.csproj",
+    "dev": "npm run dev:front",
+    "build:front": "npm --prefix TaskDev-Front run build",
+    "build:back": "dotnet build TaskDev-Back/TaskDev-Back/TaskDev-Back.csproj -c Release",
+    "build": "npm run build:front && npm run build:back",
+    "test:back": "dotnet test TaskDev-Back/TaskDev.Tests/TaskDev.Tests.csproj",
+    "test": "npm run test:back"
+  },
+  "dependencies": {
+    "@neon/config": "^1.14.6",
+    "@neon/env": "^2.1.9"
+  }
+}
