@@ -83,8 +83,10 @@ Requer .NET SDK 10, Node.js 24, npm e um PostgreSQL próprio. Configure `DATABAS
 Em um terminal com as credenciais configuradas, execute:
 
 ```bash
-dotnet run --project TaskDev-Back/TaskDev-Back/TaskDev-Back.csproj
+npm run dev:back
 ```
+
+Os scripts npm da API usam o SDK local em `.taskdev-tools/dotnet10`, quando ele está disponível. Em outros ambientes, usam o `dotnet` do PATH.
 
 Em outro terminal:
 
@@ -113,7 +115,7 @@ Mantenha a mesma chave de criptografia ao atualizar a API. Se uma instalação a
 ## Testes e contribuições
 
 ```bash
-dotnet test TaskDev-Back/TaskDev.Tests/TaskDev.Tests.csproj
+npm run test:back
 npm ci --prefix TaskDev-Front
 npm run build:front
 ```
