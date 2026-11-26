@@ -11,6 +11,16 @@ public class SecretEncryptorAesGcm : ISecretEncryptor
     private const int TagSize = 16;   // 128 bits
 
     public SecretEncryptorAesGcm(IConfiguration configuration)
+        : this(ReadKey(configuration))
+    {
+    }
+
+    private SecretEncryptorAesGcm(byte[] key) => _key = key;
+
+    internal static SecretEncryptorAesGcm ForDataProtection(IConfiguration configuration) =>
+        new(HMACSHA256.HashData(ReadKey(configuration), "TaskDev.DataProtection.KeyRing.v1"u8));
+
+    private static byte[] ReadKey(IConfiguration configuration)
     {
         var base64Key = configuration["AGENT_ENCRYPTION_KEY"] ?? configuration["Security:AgentEncryptionKey"];
         var key = new byte[32];
@@ -19,7 +29,7 @@ public class SecretEncryptorAesGcm : ISecretEncryptor
         {
             throw new InvalidOperationException("Configure AGENT_ENCRYPTION_KEY com uma chave de 32 bytes em Base64.");
         }
-        _key = key;
+        return key;
     }
 
     public string Encrypt(string plaintext)

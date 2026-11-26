@@ -4,25 +4,28 @@ namespace TaskDev.Api.Infra.Configuration.InBound;
 
 public static class ConfigurationHttp
 {
-    public static IEndpointRouteBuilder AddEndpointsHttp(this IEndpointRouteBuilder routes)
+    public static IEndpointRouteBuilder AddEndpointsHttp(this IEndpointRouteBuilder routes, bool serveSpa = false)
     {
-        // Rota raiz: redireciona para o Swagger UI se aberta em navegador (text/html) ou retorna JSON de status
-        routes.MapGet("/", (HttpContext context) =>
+        if (!serveSpa)
         {
-            if (context.Request.Headers.Accept.Any(a => a != null && a.Contains("text/html")))
+            // Rota raiz: redireciona para o Swagger UI se aberta em navegador (text/html) ou retorna JSON de status
+            routes.MapGet("/", (HttpContext context) =>
             {
-                return Results.Redirect("/swagger");
-            }
+                if (context.Request.Headers.Accept.Any(a => a != null && a.Contains("text/html")))
+                {
+                    return Results.Redirect("/swagger");
+                }
 
-            return Results.Ok(new
-            {
-                name = "Task.dev API",
-                version = "1.0.0",
-                status = "healthy",
-                documentation = "/swagger",
-                timestamp = DateTime.UtcNow
-            });
-        }).WithTags("Health").ExcludeFromDescription();
+                return Results.Ok(new
+                {
+                    name = "Task.dev API",
+                    version = "1.0.0",
+                    status = "healthy",
+                    documentation = "/swagger",
+                    timestamp = DateTime.UtcNow
+                });
+            }).WithTags("Health").ExcludeFromDescription();
+        }
 
         // Health check endpoint padrão
         routes.MapGet("/api/health", () => Results.Ok(new

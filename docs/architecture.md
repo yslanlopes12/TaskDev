@@ -28,6 +28,12 @@ O projeto segue estritamente a separação por camadas:
 
 ---
 
+### Modos de deploy
+
+No Compose, o Vue é servido pelo Nginx e a API roda em outro contêiner. No deploy unificado, o Kestrel serve o build do Vue e a API em HTTP na porta `8080`. O fallback para `index.html` atende navegações da SPA e reserva `/api` para os endpoints do backend. O proxy público termina o TLS e o ASP.NET só interpreta cabeçalhos encaminhados dos IPs ou redes explicitamente confiáveis.
+
+O mesmo PostgreSQL usado pela aplicação guarda o conjunto de chaves de Data Protection no modo unificado. O DbUp cria o schema `taskdev_security` para esse armazenamento. O repositório cifra o XML de cada chave antes da gravação e preserva os cookies de sessão entre recriações do contêiner. Consulte as variáveis e o procedimento de deploy no [README](../README.md#executar-em-um-único-contêiner).
+
 ## 2. Diagrama de Entidades e Relacionamentos (ERD)
 
 ```mermaid

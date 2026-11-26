@@ -46,3 +46,14 @@ jobs:
       - name: Testar aplicação com PostgreSQL descartável
         shell: bash
         run: bash scripts/compose-smoke-test.sh
+
+  docker-unified:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Testar imagem unificada atrás de proxy HTTPS
+        shell: bash
+        run: bash scripts/unified-smoke-test.sh

@@ -63,9 +63,11 @@ public class DatabaseMigrator : IDatabaseMigrator
 
         _logger.LogInformation("Executando migrações DbUp a partir de: {Path}", migrationsPath);
 
+        var persistKeysToPostgres = _configuration.GetValue<bool>("DataProtection:PersistKeysToPostgres");
         var upgrader = DeployChanges.To
             .PostgresqlDatabase(connectionString)
-            .WithScriptsFromFileSystem(migrationsPath)
+            .WithScriptsFromFileSystem(migrationsPath, path =>
+                persistKeysToPostgres || Path.GetFileName(path) != "003_data_protection_keys.sql")
             .LogToConsole()
             .Build();
 
