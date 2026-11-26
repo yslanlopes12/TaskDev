@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { watch } from 'vue'
-import { RouterView } from 'vue-router'
+import { RouterView, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import { useSpacesStore } from '@/stores/spaces'
@@ -15,6 +15,7 @@ import SpaceModal from '@/components/spaces/SpaceModal.vue'
 import TaskDetailDrawer from '@/components/tasks/TaskDetailDrawer.vue'
 
 const authStore = useAuthStore()
+const route = useRoute()
 const uiStore = useUiStore()
 const spacesStore = useSpacesStore()
 const gamificationStore = useGamificationStore()
@@ -34,9 +35,12 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen bg-bg text-fg font-sans antialiased overflow-hidden">
+  <div class="min-h-screen bg-bg text-fg font-sans antialiased" :class="{ 'overflow-hidden': !route.meta.docs }">
     <!-- Quando NÃO autenticado (ex: Login, Register) -->
-    <template v-if="!authStore.isAuthenticated">
+    <template v-if="route.meta.docs">
+      <RouterView />
+    </template>
+    <template v-else-if="!authStore.isAuthenticated">
       <main class="min-h-screen flex items-center justify-center p-4">
         <RouterView />
       </main>
@@ -74,10 +78,12 @@ watch(
     </template>
 
     <!-- Componentes Globais Flutuantes -->
+    <template v-if="!route.meta.docs">
     <AppToast />
     <XpToast />
     <RankModal />
     <SpaceModal />
     <TaskDetailDrawer />
+    </template>
   </div>
 </template>

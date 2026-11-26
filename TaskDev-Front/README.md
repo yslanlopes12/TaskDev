@@ -1,42 +1,46 @@
-# TaskDev-Front
+# Task.dev · Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Interface Vue 3, TypeScript, Pinia, Vue Router e Tailwind CSS. A documentação pública é integrada ao frontend em `/docs`, com artigos em Markdown, busca local e uma demonstração interativa independente da API.
 
-## Recommended IDE Setup
+## Executar
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+Requer Node.js 24 e npm. Na raiz do repositório:
 
 ```sh
-npm install
+npm ci --prefix TaskDev-Front
+npm run dev:front
 ```
 
-### Compile and Hot-Reload for Development
+- Aplicação: [localhost:5173](http://localhost:5173).
+- Documentação: [localhost:5173/docs](http://localhost:5173/docs), sem necessidade de backend.
+- API de desenvolvimento: proxy de `/api` para `http://localhost:5092`.
+
+Consulte [.env.example](.env.example) para os endereços configuráveis e o [README principal](../README.md) para banco, API e Docker.
+
+## Compilar e verificar
 
 ```sh
-npm run dev
+npm run build:front
 ```
 
-### Type-Check, Compile and Minify for Production
+Executa a checagem TypeScript e gera `dist/`. Para pré-visualizar o build, use `npm --prefix TaskDev-Front run preview`. A hospedagem precisa de fallback para `index.html` nas rotas do frontend, inclusive `/docs/assunto`.
 
-```sh
-npm run build
-```
+## Organização
+
+| Caminho | Conteúdo |
+| --- | --- |
+| `src/views` | Telas da aplicação e `DocsView.vue` |
+| `src/components` | Componentes reutilizáveis por recurso |
+| `src/content/docs` | Artigos Markdown e catálogo de navegação |
+| `src/components/docs` | Demonstração local dos controles |
+| `src/styles/docs.css` | Layout e estilos da documentação |
+| `public/docs/screens` | Capturas ilustrativas dos guias |
+| `src/api` | Cliente HTTP e módulos da API |
+| `src/stores` | Estado Pinia |
+| `src/router` | Rotas e proteção de acesso |
+
+## Editar a documentação
+
+Edite os arquivos `.md` em `src/content/docs`. Para novos artigos, registre o slug e os metadados em `catalog.ts`. Use links `/docs/assunto` e imagens `/docs/screens/arquivo.png`. Os títulos de nível 2 e 3 alimentam o sumário. Verifique também os links e as capturas após cada mudança.
+
+As imagens são carregadas sob demanda e ficam fora do precache de instalação da PWA. A demonstração usa estado local e componentes visuais existentes; não envia requisições nem grava tarefas.

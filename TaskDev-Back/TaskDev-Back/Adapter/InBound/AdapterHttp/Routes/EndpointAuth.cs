@@ -19,7 +19,7 @@ public static class EndpointAuth
 
             var result = await authUseCase.RegisterAsync(request.ToCommand());
             return result.ToHttpResult(res => res.ToResponse(), response => Results.Created($"/api/users/{response.Id}", response));
-        });
+        }).RequireRateLimiting(ConfigurationSession.AuthPolicyName);
 
         group.MapPost("/login", async (RequestLogin request, IAuthUseCase authUseCase, ISessionHandler sessionHandler,
             HttpContext context, IConfiguration configuration) =>
@@ -50,7 +50,7 @@ public static class EndpointAuth
                 csrfToken,
                 user = result.SuccessObject.ToResponse()
             });
-        });
+        }).RequireRateLimiting(ConfigurationSession.AuthPolicyName);
 
         group.MapPost("/logout", (ISessionHandler sessionHandler, HttpContext context) =>
         {

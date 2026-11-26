@@ -281,5 +281,6 @@ function goToLogin() {
         </router-link>
       </div>
     </div>
+    <router-link to="/docs" class="block mt-5 text-center text-dim hover:text-accent transition">Precisa de ajuda? Acesse a documentação</router-link>
   </div>
 </template>

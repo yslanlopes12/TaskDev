@@ -9,15 +9,20 @@ public static class ConfigurationHttpClientAdapter
     public static IServiceCollection AddHttpClientAdapterConfiguration(this IServiceCollection services)
     {
         services.AddHttpClient();
+        services.AddSingleton<AgentEndpointPolicy>();
         services.AddHttpClient<IAgentHttpClient, AgentHttpClient>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(60);
+            client.MaxResponseContentBufferSize = 1024 * 1024;
         })
-        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        .ConfigurePrimaryHttpMessageHandler(provider => new SocketsHttpHandler
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
             ConnectTimeout = TimeSpan.FromSeconds(10),
             AutomaticDecompression = DecompressionMethods.All,
+            AllowAutoRedirect = false,
+            UseProxy = false,
+            ConnectCallback = provider.GetRequiredService<AgentEndpointPolicy>().ConnectAsync,
         });
 
         services.AddSingleton<IPasswordHasher, PasswordHasherArgon2>();

@@ -10,8 +10,9 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Verificar arquivos versionados
@@ -21,16 +22,18 @@ jobs:
             printf 'Arquivos que deveriam estar ignorados:\n%s\n' "$ignored"
             exit 1
           fi
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
         with:
           dotnet-version: '10.0.x'
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: TaskDev-Front/package-lock.json
       - name: Testar API
         run: dotnet test TaskDev-Back/TaskDev.Tests/TaskDev.Tests.csproj -c Release
+      - name: Testar configuração local
+        run: node --test scripts/development-env.test.mjs
       - name: Compilar frontend
         run: |
           npm ci --prefix TaskDev-Front
@@ -40,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Testar aplicação com PostgreSQL descartável
@@ -51,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Testar imagem unificada atrás de proxy HTTPS

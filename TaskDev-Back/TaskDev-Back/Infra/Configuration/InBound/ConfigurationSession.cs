@@ -36,7 +36,8 @@ public class SessionHandler : ISessionHandler
             UserId = user.Id,
             AuthVersion = user.AuthVersion,
             Role = user.Role,
-            Username = user.Username
+            Username = user.Username,
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(7)
         };
 
         var json = JsonSerializer.Serialize(session);
@@ -66,7 +67,11 @@ public class SessionHandler : ISessionHandler
         {
             var decryptedJson = _protector.Unprotect(cookieValue);
             var session = JsonSerializer.Deserialize<AuthSessionModel>(decryptedJson);
-            if (session == null) return null;
+            if (session == null || session.ExpiresAt <= DateTimeOffset.UtcNow)
+            {
+                InvalidateSession(context);
+                return null;
+            }
 
             var user = await _userRepository.GetByIdAsync(session.UserId);
             if (user == null || !user.IsActive || user.AuthVersion != session.AuthVersion)
@@ -75,7 +80,15 @@ public class SessionHandler : ISessionHandler
                 return null;
             }
 
-            return session;
+            // Authorization must use the current role, not a stale cookie claim.
+            return new AuthSessionModel
+            {
+                UserId = user.Id,
+                AuthVersion = user.AuthVersion,
+                Role = user.Role,
+                Username = user.Username,
+                ExpiresAt = session.ExpiresAt
+            };
         }
         catch
         {
@@ -163,34 +176,13 @@ public class CsrfMiddleware
             var headerToken = context.Request.Headers[CsrfHeaderName].FirstOrDefault()
                               ?? context.Request.Headers[AlternativeHeaderName].FirstOrDefault();
 
-            // 1. Se ambos existem, devem coincidir
-            if (!string.IsNullOrWhiteSpace(cookieToken) && !string.IsNullOrWhiteSpace(headerToken))
-            {
-                if (!string.Equals(cookieToken, headerToken, StringComparison.Ordinal))
-                {
-                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    context.Response.ContentType = "application/json";
-                    await context.Response.WriteAsync("{\"message\":\"Token CSRF inválido ou divergente.\"}");
-                    return;
-                }
-            }
-            // 2. Se apenas o header veio (ex: cliente SPA obtendo token via API), aceita e sincroniza cookie
-            else if (!string.IsNullOrWhiteSpace(headerToken))
-            {
-                context.Response.Cookies.Append(CsrfCookieName, headerToken, new CookieOptions
-                {
-                    HttpOnly = false,
-                    Secure = _secureCookies || context.Request.IsHttps,
-                    SameSite = SameSiteMode.Lax,
-                    Path = "/"
-                });
-            }
-            // 3. Se o cookie existe mas nenhum header foi enviado (ataque CSRF cross-origin)
-            else if (!string.IsNullOrWhiteSpace(cookieToken) && string.IsNullOrWhiteSpace(headerToken))
+            // Fail closed: both tokens must be present and equal.
+            if (string.IsNullOrWhiteSpace(cookieToken) || string.IsNullOrWhiteSpace(headerToken) ||
+                !string.Equals(cookieToken, headerToken, StringComparison.Ordinal))
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync("{\"message\":\"Cabeçalho de proteção CSRF ausente (X-CSRF-TOKEN).\"}");
+                await context.Response.WriteAsync("{\"message\":\"Token CSRF ausente ou inválido. Obtenha um novo token em /api/auth/csrf.\"}");
                 return;
             }
         }

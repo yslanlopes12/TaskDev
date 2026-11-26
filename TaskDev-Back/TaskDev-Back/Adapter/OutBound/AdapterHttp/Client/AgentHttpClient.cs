@@ -12,11 +12,13 @@ namespace TaskDev.Api.Adapter.OutBound.AdapterHttp.Client;
 public partial class AgentHttpClient : IAgentHttpClient
 {
     private readonly HttpClient _httpClient;
+    private readonly AgentEndpointPolicy _endpointPolicy;
     private readonly ILogger<AgentHttpClient> _logger;
 
-    public AgentHttpClient(HttpClient httpClient, ILogger<AgentHttpClient> logger)
+    public AgentHttpClient(HttpClient httpClient, ILogger<AgentHttpClient> logger, AgentEndpointPolicy endpointPolicy)
     {
         _httpClient = httpClient;
+        _endpointPolicy = endpointPolicy;
         _logger = logger;
         _httpClient.Timeout = TimeSpan.FromSeconds(60);
     }
@@ -28,7 +30,7 @@ public partial class AgentHttpClient : IAgentHttpClient
         string? model,
         CancellationToken cancellationToken = default)
     {
-        ValidateUrlSsrf(endpointUrl);
+        _endpointPolicy.ValidateEndpoint(endpointUrl);
 
         if (providerType == EnumAgentProviderType.Anthropic)
         {
@@ -112,7 +114,7 @@ public partial class AgentHttpClient : IAgentHttpClient
         IReadOnlyList<AgentChatMessageModel> messages,
         CancellationToken cancellationToken = default)
     {
-        ValidateUrlSsrf(endpointUrl);
+        _endpointPolicy.ValidateEndpoint(endpointUrl);
 
         if (providerType == EnumAgentProviderType.Anthropic)
         {
@@ -222,7 +224,7 @@ public partial class AgentHttpClient : IAgentHttpClient
             if (res.StatusCode == HttpStatusCode.BadRequest)
             {
                 var errSnippet = await res.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogInformation("Provider returned 400 with tools, retrying without tools: {Err}", errSnippet);
+                _logger.LogInformation("Provider returned 400 with tools, retrying without tools.");
                 res.Dispose();
 
                 var fallbackBody = JsonSerializer.Serialize(new
@@ -290,7 +292,7 @@ public partial class AgentHttpClient : IAgentHttpClient
 
         if (providerType == EnumAgentProviderType.Webhook)
         {
-            ValidateUrlSsrf(endpointUrl);
+            _endpointPolicy.ValidateEndpoint(endpointUrl);
             using var request = new HttpRequestMessage(HttpMethod.Post, endpointUrl);
             if (!string.IsNullOrWhiteSpace(apiKey))
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
@@ -322,7 +324,7 @@ public partial class AgentHttpClient : IAgentHttpClient
         string providerType,
         CancellationToken cancellationToken = default)
     {
-        ValidateUrlSsrf(endpointUrl);
+        _endpointPolicy.ValidateEndpoint(endpointUrl);
 
         if (providerType == EnumAgentProviderType.Webhook)
         {
@@ -857,13 +859,11 @@ public partial class AgentHttpClient : IAgentHttpClient
         return response;
     }
 
-    private async Task EnsureSuccessOrThrowDetailedAsync(HttpResponseMessage response, CancellationToken ct)
+    private Task EnsureSuccessOrThrowDetailedAsync(HttpResponseMessage response, CancellationToken ct)
     {
-        if (response.IsSuccessStatusCode) return;
-        var body = await response.Content.ReadAsStringAsync(ct);
-        var snippet = body.Length > 300 ? body[..300] + "..." : body;
-        _logger.LogWarning("AI Provider returned {StatusCode}: {Body}", (int)response.StatusCode, snippet);
-        throw new HttpRequestException($"Provedor retornou {(int)response.StatusCode} ({response.ReasonPhrase}): {snippet}");
+        if (response.IsSuccessStatusCode) return Task.CompletedTask;
+        _logger.LogWarning("AI Provider returned HTTP {StatusCode}", (int)response.StatusCode);
+        throw new HttpRequestException($"Provedor de IA retornou HTTP {(int)response.StatusCode}. Confira as credenciais, o modelo e os limites da sua conta.");
     }
 
     private static string ExtractWebhookText(string rawJson)
@@ -890,84 +890,6 @@ public partial class AgentHttpClient : IAgentHttpClient
         if (content.EndsWith("```"))
             content = content[..^3];
         return content.Trim();
-    }
-
-    public static void ValidateUrlSsrf(string url)
-    {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-        {
-            throw new ArgumentException("URL inválida.");
-        }
-
-        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-        {
-            throw new ArgumentException("Apenas protocolos HTTP e HTTPS são permitidos.");
-        }
-
-        var host = uri.DnsSafeHost;
-
-        if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase) && uri.Port == 11434)
-        {
-            return;
-        }
-
-        if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Endereços de loopback (localhost) não são permitidos.");
-        }
-
-        try
-        {
-            var ipAddresses = Dns.GetHostAddresses(host);
-            foreach (var ip in ipAddresses)
-            {
-                if (IPAddress.IsLoopback(ip))
-                {
-                    throw new InvalidOperationException("Endereços IP de loopback são bloqueados.");
-                }
-
-                if (IsPrivateOrRestrictedIp(ip))
-                {
-                    throw new InvalidOperationException("Endereços IP privados ou de metadados são bloqueados.");
-                }
-            }
-        }
-        catch (InvalidOperationException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ArgumentException($"Não foi possível resolver o host '{host}': {ex.Message}");
-        }
-    }
-
-    private static bool IsPrivateOrRestrictedIp(IPAddress ip)
-    {
-        if (ip.IsIPv4MappedToIPv6)
-        {
-            ip = ip.MapToIPv4();
-        }
-
-        var bytes = ip.GetAddressBytes();
-
-        if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-        {
-            if (bytes[0] == 10) return true;
-            if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
-            if (bytes[0] == 192 && bytes[1] == 168) return true;
-            if (bytes[0] == 169 && bytes[1] == 254) return true;
-            if (bytes[0] == 127) return true;
-            if (bytes[0] == 0) return true;
-        }
-        else if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
-        {
-            if (ip.Equals(IPAddress.IPv6Loopback)) return true;
-            if ((bytes[0] == 0xfe) && ((bytes[1] & 0xc0) == 0x80)) return true;
-            if ((bytes[0] & 0xfe) == 0xfc) return true;
-        }
-
-        return false;
     }
 
     private static IReadOnlyList<SuggestedTaskModel> ParseTasksJson(string json)

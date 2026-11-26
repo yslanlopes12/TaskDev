@@ -178,6 +178,10 @@ async function handleLogout() {
 
       <!-- Links secundários -->
       <div class="space-y-0.5 pt-1">
+        <router-link to="/docs" class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium text-dim hover:text-fg hover:bg-hover" title="Documentação">
+          <BookOpen class="w-4 h-4 shrink-0" />
+          <span v-if="isExpanded">Documentação</span>
+        </router-link>
         <!-- Admin Link (se admin ou operador) -->
         <router-link
           v-if="authStore.isOperator"

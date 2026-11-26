@@ -36,6 +36,11 @@
     "vue-tsc": "^3.3.11",
     "workbox-window": "^7.4.1"
   },
+  "overrides": {
+    "workbox-build": {
+      "glob": "14.0.2"
+    }
+  },
   "engines": {
     "node": "^22.18.0 || >=24.12.0"
   }

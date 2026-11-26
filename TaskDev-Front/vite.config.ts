@@ -33,6 +33,8 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          // Tutorial screenshots are loaded on demand, not during PWA installation.
+          globIgnores: ['docs/screens/**'],
           navigateFallbackDenylist: [/^\/api(?:\/|\?|$)/i],
         },
       }),

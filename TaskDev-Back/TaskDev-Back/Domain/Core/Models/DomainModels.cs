@@ -71,6 +71,7 @@ public sealed class AgentChatResponseModel
 
 public sealed class AuthSessionModel
 {
+    public DateTimeOffset ExpiresAt { get; set; }
     public Guid UserId { get; init; }
     public Guid Id => UserId;
     public int AuthVersion { get; init; }

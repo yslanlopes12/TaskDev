@@ -24,7 +24,7 @@ public static class EndpointAdmin
 
             var result = await adminUseCase.BootstrapAdminAsync(request.ToCommand());
             return result.ToHttpResult(res => res.ToResponse(), response => Results.Created($"/api/users/{response.Id}", response));
-        });
+        }).RequireRateLimiting(ConfigurationSession.AuthPolicyName);
 
         // Listar todos os usuários (ADMIN ou OPERATOR)
         group.MapGet("/users", async (HttpContext context, ISessionHandler sessionHandler, IAdminUseCase adminUseCase) =>

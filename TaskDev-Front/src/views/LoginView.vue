@@ -128,5 +128,6 @@ async function handleLogin() {
         </router-link>
       </div>
     </div>
+    <router-link to="/docs" class="block mt-5 text-center text-dim hover:text-accent transition">Conheça o Task.dev · Documentação</router-link>
   </div>
 </template>

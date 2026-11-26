@@ -1,0 +1,96 @@
+name: Security
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '17 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependencies:
+    name: npm and NuGet audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+      - name: Audit root npm lockfile (including dev dependencies)
+        run: npm audit --audit-level=moderate
+      - name: Audit frontend npm lockfile (including dev dependencies)
+        if: ${{ !cancelled() }}
+        run: npm audit --prefix TaskDev-Front --audit-level=moderate
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
+        if: ${{ !cancelled() }}
+        with:
+          dotnet-version: '10.0.x'
+      - name: Audit direct and transitive NuGet packages (API and tests)
+        if: ${{ !cancelled() }}
+        run: >-
+          dotnet restore TaskDev-Back/TaskDev.Tests/TaskDev.Tests.csproj --force-evaluate
+          -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=low
+          -warnaserror:NU1900,NU1901,NU1902,NU1903,NU1904,NU1905
+
+  secrets:
+    name: Gitleaks history scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install official Gitleaks release with pinned checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --location --retry 3 \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output "$RUNNER_TEMP/gitleaks.tar.gz"
+          echo '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  '"$RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/gitleaks-bin"
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP/gitleaks-bin" gitleaks
+      - name: Scan every reachable commit without printing secrets
+        run: '"$RUNNER_TEMP/gitleaks-bin/gitleaks" git --redact=100 --no-banner --log-opts="--all" .'
+
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, csharp]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
+        if: matrix.language == 'csharp'
+        with:
+          dotnet-version: '10.0.x'
+      - uses: github/codeql-action/init@915412ff23e8b7659517e607487dbeae018f2934 # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.language == 'csharp' && 'manual' || 'none' }}
+          queries: security-extended
+      - name: Build C# for analysis
+        if: matrix.language == 'csharp'
+        run: dotnet build TaskDev-Back/TaskDev.Tests/TaskDev.Tests.csproj -c Release -p:UseAppHost=false
+      - uses: github/codeql-action/analyze@915412ff23e8b7659517e607487dbeae018f2934 # v4
+        with:
+          category: /language:${{ matrix.language }}
