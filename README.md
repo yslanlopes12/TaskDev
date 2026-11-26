@@ -33,16 +33,6 @@ docker run --rm --env-file .env -e Security__SecureCookies=false -p 127.0.0.1:80
 
 Abra `http://localhost:8080`. O comando desativa o atributo `Secure` para o teste HTTP local. A imagem ativa cookies seguros e desativa o Swagger por padrão. O frontend da imagem usa `/api` na mesma origem. As configurações do Vite para desenvolvimento e publicação separada continuam disponíveis pelos comandos correspondentes.
 
-### Publicar no Northflank
-
-1. Crie um **Combined Service** vinculado ao repositório. Selecione Dockerfile, use `Dockerfile` e contexto `.` e mantenha uma instância. Confira a franquia do plano Sandbox e o consumo do serviço no painel. [Guia de deploy](https://northflank.com/docs/v1/application/getting-started/build-and-deploy-your-code) · [Planos do Northflank](https://northflank.com/pricing).
-2. Configure uma porta pública **HTTP** em `8080`. Use o endereço HTTPS fornecido pelo Northflank e configure a verificação de saúde HTTP em `/api/health`. O proxy da plataforma termina o TLS e fala HTTP com o contêiner. [Rede do Northflank](https://northflank.com/docs/v1/application/network/networking-on-northflank).
-3. Em **Runtime variables** ou em um **Secret Group**, defina `DATABASE_URL` e `AGENT_ENCRYPTION_KEY`. Se tiver uma conexão direta para o DbUp, defina também `DATABASE_URL_UNPOOLED`. Use `Security__SecureCookies=true`, `Swagger__Enabled=false` e mantenha `Admin__BootstrapEnabled=false` após criar o primeiro administrador por um acesso restrito. Quando o provedor oferecer verificação de CA e hostname, use `sslmode=verify-full` na conexão PostgreSQL.
-4. Configure `ForwardedHeaders__KnownProxies__0` com o IP do proxy que se conecta diretamente ao Kestrel ou `ForwardedHeaders__KnownNetworks__0` com um CIDR exclusivo dos proxies confiáveis. Confirme esse endereço ou intervalo com o operador do ambiente e use índices `__1`, `__2` e assim por diante se houver mais entradas. A aplicação só habilita esse encaminhamento com uma lista explícita e aceita um salto de `X-Forwarded-For` e `X-Forwarded-Proto`. Mantenha `ASPNETCORE_FORWARDEDHEADERS_ENABLED` desativada. [Cabeçalhos encaminhados no ASP.NET Core](https://learn.microsoft.com/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-10.0).
-5. Acesse `/api/health` por HTTPS e confira os atributos `Secure`, `HttpOnly` e `SameSite=Lax` no cookie `taskdev-session` após o login. Reimplante o serviço e confirme que `/api/auth/me` ainda reconhece a sessão no mesmo domínio.
-
-No deploy unificado, o DbUp cria `taskdev_security.data_protection_keys` no PostgreSQL. O ASP.NET usa esse repositório para manter as sessões após a recriação do contêiner, sem volume. As chaves são criptografadas com uma chave derivada de `AGENT_ENCRYPTION_KEY`. Preserve esse segredo, o banco e as chaves armazenadas entre deploys. Se a conexão de migração usa outro usuário PostgreSQL, conceda ao usuário da aplicação `USAGE` no schema `taskdev_security` e `SELECT, INSERT` na tabela. Se `Database__MigrateOnStartup=false`, aplique a migração antes do deploy. A primeira migração do armazenamento de chaves em arquivo para o PostgreSQL exige um novo login.
-
 ## Executar com Docker Compose
 
 Requer Docker Engine ou Docker Desktop com Compose v2. Na raiz do repositório:
